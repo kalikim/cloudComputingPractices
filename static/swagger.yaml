@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: consuming api data geonames
-  description: Corona Virus Kenya Statistics
+  description: Cloud computing
   version: 0.1.9
 servers:
   - url: http://127.0.0.1:5000/
@@ -11,10 +11,10 @@ servers:
 paths:
   /:
     get:
-      summary: Obtain realtime corona virus statistics of kenya.
-      description: obtain realtime corona virus statistics of kenya
+      summary: geoname
+      description: geoname
       responses:
-        '200':    # status code
+        '200': # status code
           description: geonames
           content:
             application/json:
@@ -22,3 +22,35 @@ paths:
                 type: object
                 items:
                   type: string
+  /price:
+    get:
+      summary: Obtain the electricity prices
+      description: these are market values of energy
+      parameters:
+        - in: query
+          name: startTimestamp
+          description: This is the starting unix timestamp (time in milliseconds)
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            example: 1546300800000
+        - in: query
+          name: endTimestamp
+          description: This is end unix timestamp to end where it will end
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            example: 1577750400000
+      responses:
+        '200': # status code
+          description: electricity price
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  type: string
+
+
