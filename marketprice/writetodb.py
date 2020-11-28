@@ -6,9 +6,10 @@ import pandas as pd
 import urllib3
 from flask import jsonify
 from flask_restful import Resource
+from influxdb import DataFrameClient
 
 
-class ElectricityPrice(Resource):
+class WriteToDB(Resource):
 
     def get(self):
         # getting the two parameters from the get request
@@ -48,7 +49,6 @@ class ElectricityPrice(Resource):
         df_apidata = pd.json_normalize(data, "data")
 
         # converted_df = pd.to_datetime(df_apidata['start_timestamp'], unit='ms')
-        df_marketprice = df_apidata[['marketprice', 'unit']]
         df_apidata['start_timestamp'] = pd.to_datetime(
             df_apidata['start_timestamp'],
             unit='ms'
@@ -57,17 +57,37 @@ class ElectricityPrice(Resource):
             df_apidata['end_timestamp'],
             unit='ms'
         )
-        df_apidata.set_index('start_timestamp', inplace=True)
+        print(df_apidata.shape)
         print(df_apidata.head(5))
+        df_apidata.drop(['end_timestamp'], axis=1)
+        df_apidata = df_apidata.set_index(pd.DatetimeIndex(df_apidata['start_timestamp']))
+        print(df_apidata.head(5))
+        print(df_apidata.dtypes)
+        # timeValues = df_apidata[['start_timestamp', 'end_timestamp']]
+
+        # timeValues = df_apidata[['end_timestamp']]
+        # timeValues.index = df_apidata[['start_timestamp']]
+        # tags = {'marketprice': df_apidata[['marketprice']], 'unit': df_apidata[['unit']]}
+
         # timeValues = df_apidata[['start_timestamp','end_timestamp']]
 
         # tags = [{'start_timestamp': df_apidata[['start_timestamp']],'end_timestamp': df_apidata[['end_timestamp']],'marketprice': df_apidata[['marketprice']], 'unit': df_apidata[['unit']]}]
         tags = {'unit': df_apidata[['unit']]}
-        # columns = [{'start_timestamp': df_apidata[['start_timestamp']], 'end_timestamp': df_apidata[['end_timestamp']],
-        #         'marketprice': df_apidata[['marketprice']], 'unit': df_apidata[['unit']]}]
+
+        # influxdata = json.dumps(df_apidata.to_json())
+        # host = ' http://127.0.0.1'
+        # port = 8086
+        # user = 'root'
+        # password = 'root'
+        # dbname = 'kalidb'
+        # dbuser = 'kalikimanzi'
+        # dbuser_password = 'kalikimanzi123'
+        client = DataFrameClient(host='localhost', port=8086)
+
+        client.switch_database('testingdb')
 
         print(df_apidata.dtypes)
-        # client.write_points(df_apidata,'demo1',tags=tags,protocol ='json' )
+        client.write_points(df_apidata, 'demo', tags=tags)
 
         # ,tags=tags,database='kalidb',protocol = "json",time_precision='n'
 
@@ -79,7 +99,7 @@ class ElectricityPrice(Resource):
         # online i extract the marketprice column  from the dataframe by creating
         # another dataframe with the market price column, though i can also extract other
         # columns by specifying them
-
+        df_marketprice = df_apidata[['marketprice', 'unit']]
 
         # The reason why i am changing this a dictionary is because it takes a longer process
         # to serialize a dataframe to json format. since using jsonify i can convert

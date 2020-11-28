@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: consuming api data geonames
+  title: Cloud Computing
   description: Cloud computing
   version: 0.1.9
 servers:
@@ -25,11 +25,11 @@ paths:
   /price:
     get:
       summary: Obtain the electricity prices
-      description: these are market values of energy
+      description: these are market values of energy. Get the time in stamps in milliseconds https://www.epochconverter.com/
       parameters:
         - in: query
           name: startTimestamp
-          description: This is the starting unix timestamp (time in milliseconds)
+          description: This is the starting Unix epoch time timestamp (time in milliseconds)
           schema:
             type: integer
             format: int32
@@ -37,7 +37,7 @@ paths:
             example: 1546300800000
         - in: query
           name: endTimestamp
-          description: This is end unix timestamp to end where it will end
+          description: This is end Unix epoch time timestamp to end where it will end
           schema:
             type: integer
             format: int32
@@ -46,6 +46,49 @@ paths:
       responses:
         '200': # status code
           description: electricity price
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  type: string
+  /writetodb:
+    get:
+      summary: Record data to database
+      description: these are market values of energy. Get the time in stamps in milliseconds https://www.epochconverter.com/
+      parameters:
+        - in: query
+          name: startTimestamp
+          description: This is the starting Unix epoch time timestamp (time in milliseconds)
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            example: 1546300800000
+        - in: query
+          name: endTimestamp
+          description: This is end Unix epoch time timestamp to end where it will end
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            example: 1577750400000
+      responses:
+        '200': # status code
+          description: electricity price
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  type: string
+  /database:
+    get:
+      summary: databases available
+      description: databases in our system on
+      responses:
+        '200': # status code
+          description: databases
           content:
             application/json:
               schema:
