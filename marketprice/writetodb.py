@@ -10,8 +10,31 @@ from influxdb import DataFrameClient
 
 
 class WriteToDB(Resource):
+    """
+    Contains the process of writing data from Api to Influx DATABASE
+    """
 
     def get(self):
+        """
+                1. This end point receives two parameters
+                    1.1. startTimestamp
+                    1.2. endTimestamp
+
+                2. combines the two parameters with awattar url to form awattar url
+                3. an API call is made to https://api.awattar.at
+                4. Awattar returns a json data
+                5.Json data is converted to Pandas Dataframe inorder to interact with it further,
+                6.Further processing done include
+                    6.1. Converting the timestamps to dateTime format
+                    6.2 setting startTimestamp as the index
+                7. Creating influxdb client
+                8. Switching to the database to work with in my case i chose 'TestingDb'
+                9. Writing the data to the database in a try exception clause
+
+
+
+                :return: "sucess " or "Fail"
+                """
         # getting the two parameters from the get request
         startTimestamp = int(flask.request.args.get("startTimestamp"))
         endTimestamp = int(flask.request.args.get("endTimestamp"))
@@ -47,47 +70,36 @@ class WriteToDB(Resource):
         # To process the data further with python data analytics library pandas
         # for easy processing i convert it into pandas dataframe
         df_apidata = pd.json_normalize(data, "data")
+        # df_apidata.drop(columns=['end_timestamp'])
 
         # converted_df = pd.to_datetime(df_apidata['start_timestamp'], unit='ms')
+        df_marketprice = df_apidata[['marketprice', 'unit']]
         df_apidata['start_timestamp'] = pd.to_datetime(
             df_apidata['start_timestamp'],
             unit='ms'
         )
-        df_apidata['end_timestamp'] = pd.to_datetime(
-            df_apidata['end_timestamp'],
-            unit='ms'
-        )
-        print(df_apidata.shape)
+        # df_apidata['end_timestamp'] = pd.to_datetime(
+        #     df_apidata['end_timestamp'],
+        #     unit='ms'
+        # )
+        df_apidata.set_index('start_timestamp', inplace=True)
         print(df_apidata.head(5))
-        df_apidata.drop(['end_timestamp'], axis=1)
-        df_apidata = df_apidata.set_index(pd.DatetimeIndex(df_apidata['start_timestamp']))
-        print(df_apidata.head(5))
-        print(df_apidata.dtypes)
-        # timeValues = df_apidata[['start_timestamp', 'end_timestamp']]
-
-        # timeValues = df_apidata[['end_timestamp']]
-        # timeValues.index = df_apidata[['start_timestamp']]
-        # tags = {'marketprice': df_apidata[['marketprice']], 'unit': df_apidata[['unit']]}
-
         # timeValues = df_apidata[['start_timestamp','end_timestamp']]
 
         # tags = [{'start_timestamp': df_apidata[['start_timestamp']],'end_timestamp': df_apidata[['end_timestamp']],'marketprice': df_apidata[['marketprice']], 'unit': df_apidata[['unit']]}]
         tags = {'unit': df_apidata[['unit']]}
+        # columns = [{'start_timestamp': df_apidata[['start_timestamp']], 'end_timestamp': df_apidata[['end_timestamp']],
+        #         'marketprice': df_apidata[['marketprice']], 'unit': df_apidata[['unit']]}]
 
-        # influxdata = json.dumps(df_apidata.to_json())
-        # host = ' http://127.0.0.1'
-        # port = 8086
-        # user = 'root'
-        # password = 'root'
-        # dbname = 'kalidb'
-        # dbuser = 'kalikimanzi'
-        # dbuser_password = 'kalikimanzi123'
+        print(df_apidata.dtypes)
         client = DataFrameClient(host='localhost', port=8086)
 
         client.switch_database('testingdb')
-
-        print(df_apidata.dtypes)
-        client.write_points(df_apidata, 'demo', tags=tags)
+        try:
+            client.write_points(df_apidata, 'demo9', tags=tags, protocol='line')
+        except:
+            error_dict = {'failed': 'failed to write to database check your parameters'}
+            return jsonify(error_dict)
 
         # ,tags=tags,database='kalidb',protocol = "json",time_precision='n'
 
@@ -95,15 +107,6 @@ class WriteToDB(Resource):
         # the head() function takes the number of rows you want to check
         print(df_apidata.head(10))
 
-        # since i am interested with only marketprice
-        # online i extract the marketprice column  from the dataframe by creating
-        # another dataframe with the market price column, though i can also extract other
-        # columns by specifying them
-        df_marketprice = df_apidata[['marketprice', 'unit']]
+        success_dict = {'success': 'Successfully created the data into the database'}
 
-        # The reason why i am changing this a dictionary is because it takes a longer process
-        # to serialize a dataframe to json format. since using jsonify i can convert
-        # the python dictionary to json format to be send over the api
-        marketprice_dictionary = df_marketprice.to_dict("dict")
-
-        return jsonify(marketprice_dictionary)
+        return jsonify(success_dict)
